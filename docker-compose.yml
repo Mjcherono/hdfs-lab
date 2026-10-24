@@ -1,0 +1,60 @@
+# Small Hadoop lab: HDFS (1 NameNode, 4 DataNodes), YARN (1 ResourceManager,
+# 2 NodeManagers) and a Spark client. About 4 GB of memory in total.
+#
+# Web UIs are bound to localhost only. From a laptop, forward the ports with VS
+# Code (Ports tab) or: ssh -L 9870:localhost:9870 -L 18088:localhost:18088 <host>
+#   NameNode   http://localhost:9870
+#   YARN       http://localhost:18088 (8088 is often taken by another service)
+#
+# Data lives inside the containers (/tmp/hadoop), so "docker compose down"
+# wipes HDFS. That is deliberate for a lab: every run starts clean.
+
+x-hadoop: &hadoop
+  image: apache/hadoop:3.4.1
+  env_file: ./config
+  volumes:
+    - ./exercises:/exercises:ro
+
+x-datanode: &datanode
+  <<: *hadoop
+  command: ["hdfs", "datanode"]
+  depends_on: [namenode]
+
+x-nodemanager: &nodemanager
+  <<: *hadoop
+  command: ["yarn", "nodemanager"]
+  depends_on: [resourcemanager]
+
+services:
+  namenode:
+    <<: *hadoop
+    hostname: namenode
+    command: ["hdfs", "namenode"]
+    ports:
+      - "127.0.0.1:9870:9870"
+    environment:
+      ENSURE_NAMENODE_DIR: /tmp/hadoop/dfs/name
+
+  datanode1: { <<: *datanode, hostname: datanode1 }
+  datanode2: { <<: *datanode, hostname: datanode2 }
+  datanode3: { <<: *datanode, hostname: datanode3 }
+  datanode4: { <<: *datanode, hostname: datanode4 }
+
+  resourcemanager:
+    <<: *hadoop
+    hostname: resourcemanager
+    command: ["yarn", "resourcemanager"]
+    ports:
+      - "127.0.0.1:18088:8088"
+    depends_on: [namenode]
+
+  nodemanager1: { <<: *nodemanager, hostname: nodemanager1 }
+  nodemanager2: { <<: *nodemanager, hostname: nodemanager2 }
+
+  spark:
+    image: apache/spark:3.5.3
+    hostname: spark
+    command: ["sleep", "infinity"]
+    volumes:
+      - ./exercises:/exercises:ro
+    depends_on: [namenode]
