@@ -14,11 +14,12 @@ echo; echo "== Top 10 words"
 hdfs dfs -cat /lab/wordcount/part-r-* | sort -k2 -nr | head -10
 cat <<'NOTE'
 
+
 Talking points
-- Map: each mapper reads one input split (usually one HDFS block, run where the
-  block lives: data locality) and emits (word, 1).
-- Shuffle and sort: pairs are partitioned by key and sent to reducers. This is
-  the expensive, network-heavy step.
+- Map: each mapper reads one input split (usually one HDFS block, 
+run where the block lives: data locality) and emits (word, 1).
+- Shuffle and sort: pairs are partitioned by key and sent to reducers. 
+This is the expensive, network-heavy step.
 - Reduce: sums the counts per word.
 - A combiner (local pre-aggregation) cuts shuffle volume. wordcount uses one.
 - Every stage writes to disk, which makes MapReduce robust but slow for

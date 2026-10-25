@@ -58,3 +58,11 @@ services:
     volumes:
       - ./exercises:/exercises:ro
     depends_on: [namenode]
+
+  # Edge node: client tools and cluster config, no HDFS or YARN daemons. Jobs
+  # are submitted from here, as users would on a real cluster.
+  edge:
+    <<: *hadoop
+    hostname: edge
+    command: ["sleep", "infinity"]
+    depends_on: [namenode, resourcemanager]
