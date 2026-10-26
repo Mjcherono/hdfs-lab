@@ -1,0 +1,9 @@
+<configuration>
+<property><name>dfs.namenode.rpc-address</name><value>namenode:8020</value></property>
+<property><name>dfs.permissions.enabled</name><value>false</value></property>
+<property><name>dfs.datanode.data.dir</name><value>/tmp/hadoop/dfs/data</value></property>
+<property><name>dfs.namenode.heartbeat.recheck-interval</name><value>30000</value></property>
+<property><name>dfs.blocksize</name><value>134217728</value></property>
+<property><name>dfs.namenode.name.dir</name><value>/tmp/hadoop/dfs/name</value></property>
+<property><name>dfs.replication</name><value>3</value></property>
+</configuration>

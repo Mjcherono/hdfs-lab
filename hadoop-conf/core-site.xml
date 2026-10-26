@@ -1,0 +1,4 @@
+<configuration>
+<property><name>hadoop.prometheus.endpoint.enabled</name><value>true</value></property>
+<property><name>fs.defaultFS</name><value>hdfs://namenode:8020</value></property>
+</configuration>

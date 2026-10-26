@@ -35,6 +35,32 @@ interview.
 | 05 | TeraGen and TeraSort benchmark | `docker compose exec resourcemanager bash /exercises/05_terasort.sh` |
 | 06 | Spark: inverted index and TF-IDF search | `docker compose exec spark /opt/spark/bin/spark-submit --master "local[2]" /exercises/06_spark_search_index.py "patent warranty"` |
 | 07 | Capacity planning calculator | `docker compose exec spark python3 /exercises/07_capacity_calculator.py` |
+| 08 | Capacity report from real web logs, Spark on YARN | see below |
+
+### 08: capacity report from real web logs
+
+Uses the NASA Kennedy Space Center web server logs for July and August 1995
+(about 3.5 million requests), published by the Internet Traffic Archive at
+Lawrence Berkeley National Laboratory. Download them into `data/` (kept out of
+git), then load and run:
+
+```bash
+mkdir -p data && cd data
+curl -fLO https://ita.ee.lbl.gov/traces/NASA_access_log_Jul95.gz
+curl -fLO https://ita.ee.lbl.gov/traces/NASA_access_log_Aug95.gz
+cd ..
+docker compose exec edge bash /exercises/08_load_web_logs.sh
+docker compose exec spark /opt/spark/bin/spark-submit \
+    --master yarn --deploy-mode client \
+    --num-executors 3 --executor-cores 1 --executor-memory 640m \
+    --conf spark.yarn.am.memory=512m --conf spark.driver.host=spark \
+    --conf spark.sql.shuffle.partitions=12 --conf spark.sql.session.timeZone=UTC \
+    /exercises/08_web_logs_capacity.py
+```
+
+`hadoop-conf/` holds the cluster's client config, copied from the edge node, so
+the Spark container can reach HDFS and YARN. The job uses DataFrame operations
+only, because the NodeManagers have no Python.
 
 ## A capacity trap this lab shows
 
