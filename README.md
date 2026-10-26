@@ -15,6 +15,8 @@ run_pipeline.sh                  the whole pipeline, end to end
 jobs/                            the data pipeline
   ingest_web_logs.sh             HDFS: land raw logs in the data lake
   busiest_hours_mapreduce.sh     MapReduce on YARN: busiest hours, status codes
+  busiest_hours_spark.sh/.py     the same job in Spark, for comparison
+  compare_engines.sh             runs both, times them, checks the answers match
   capacity_report_spark.sh       Spark on YARN: submits the capacity report
   capacity_report_spark.py       the Spark job itself
 ops/                             running the cluster
@@ -79,7 +81,18 @@ bash run_pipeline.sh            # about 8 minutes
 | 3 | `jobs/capacity_report_spark.sh` | Cleans every request into `/lake/curated` (Parquet, one file per day), builds `/lake/marts/nasa_hourly`, prints the capacity report | YARN UI, Grafana: YARN panels |
 | 4 | `ops/metrics_snapshot.sh` | Reads the cluster's numbers from Prometheus | Terminal |
 
-Each step also runs on its own. Then try the operations scripts:
+Each step also runs on its own. To see MapReduce and Spark do the same job:
+
+```bash
+bash jobs/compare_engines.sh    # about 5 minutes
+```
+
+On this data MapReduce needs 4 YARN applications and about 150 s, Spark 1
+application and about 120 s, with identical answers. MapReduce writes every
+stage to disk and reads the logs once per question; Spark reads them once and
+keeps them in memory.
+
+Then try the operations scripts:
 
 ```bash
 bash ops/hdfs_health.sh             # capacity and block health

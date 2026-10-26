@@ -19,7 +19,7 @@ from pyspark.sql import SparkSession, functions as F
 LAKE = "hdfs://namenode:8020/lake"
 TARGET_UTILISATION = 0.70   # size so the busiest minute runs at 70% of capacity
 
-spark = SparkSession.builder.appName("nasa-web-logs-capacity").getOrCreate()
+spark = SparkSession.builder.appName("capacity-report").getOrCreate()
 spark.sparkContext.setLogLevel("WARN")
 
 # --- Parse --------------------------------------------------------------------

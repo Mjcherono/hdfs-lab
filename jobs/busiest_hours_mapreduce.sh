@@ -16,16 +16,16 @@ hdfs dfs -rm -r -f -skipTrash /lake/marts/mr_busiest_hours /lake/marts/mr_status
 run() {   # name, output dir, regex: each run is two MapReduce jobs (count, then sort)
   echo "== $1"; s=$(date +%s)
   yarn jar $JAR grep $OPTS $IN "$2" "$3" 1 2>&1 \
-    | grep -E "Submitted application|completed successfully|Launched map tasks|Launched reduce tasks" || true
+    | grep -E "Submitted application|completed successfully|Launched map tasks|Launched reduce tasks|FILE: Number of bytes written" || true
   echo "   took $(( $(date +%s) - s )) s"
 }
 run "Requests per hour (key: day/month/year:hour)" /lake/marts/mr_busiest_hours '\[([0-9]{2}/[A-Za-z]{3}/[0-9]{4}:[0-9]{2})'
 run "Requests per HTTP status code"                /lake/marts/mr_status_codes  '" ([0-9]{3}) '
 
 echo; echo "== Ten busiest hours (requests, hour)"
-hdfs dfs -cat /lake/marts/mr_busiest_hours/part-r-* | head -10
+hdfs dfs -cat /lake/marts/mr_busiest_hours/part-r-* | head -10 || true
 echo; echo "== Status codes (requests, code)"
-hdfs dfs -cat /lake/marts/mr_status_codes/part-r-* | head -10
+hdfs dfs -cat /lake/marts/mr_status_codes/part-r-* | head -10 || true
 EOF
 
 cat <<'NOTE'
