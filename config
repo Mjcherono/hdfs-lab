@@ -32,3 +32,6 @@ MAPRED-SITE.XML_mapreduce.map.java.opts=-Xmx400m
 MAPRED-SITE.XML_mapreduce.reduce.java.opts=-Xmx400m
 
 HADOOP_HEAPSIZE_MAX=512m
+
+# Prometheus metrics at /prom on every daemon's web port
+CORE-SITE.XML_hadoop.prometheus.endpoint.enabled=true

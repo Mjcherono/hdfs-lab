@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: namenode
+    metrics_path: /prom
+    static_configs: [{ targets: ['namenode:9870'] }]
+  - job_name: datanode
+    metrics_path: /prom
+    static_configs: [{ targets: ['datanode1:9864', 'datanode2:9864', 'datanode3:9864', 'datanode4:9864'] }]
+  - job_name: resourcemanager
+    metrics_path: /prom
+    static_configs: [{ targets: ['resourcemanager:8088'] }]
+  - job_name: nodemanager
+    metrics_path: /prom
+    static_configs: [{ targets: ['nodemanager1:8042', 'nodemanager2:8042'] }]

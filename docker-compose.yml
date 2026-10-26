@@ -66,3 +66,28 @@ services:
     hostname: edge
     command: ["sleep", "infinity"]
     depends_on: [namenode, resourcemanager]
+
+  # Monitoring: Prometheus collects metrics every 15 s and keeps 15 days of
+  # history; Grafana draws them. Both on localhost only.
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    hostname: prometheus
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:19090:9090"
+
+  grafana:
+    image: grafana/grafana:13.0.1
+    hostname: grafana
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:13000:3000"
+    depends_on: [prometheus]
+
+volumes:
+  prometheus-data:
