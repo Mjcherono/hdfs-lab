@@ -1,8 +1,8 @@
 """
-07  Capacity planning calculator for an HDFS cluster.
+Capacity planner for an HDFS cluster: nodes, raw disk and NameNode memory.
 Change the inputs and rerun. Pure Python, no cluster needed.
 
-Run:  docker compose exec spark python3 /exercises/07_capacity_calculator.py
+Run from the lab folder:  python3 tools/hdfs_capacity_planner.py
 """
 # ---- inputs ----------------------------------------------------------------
 daily_ingest_tb   = 2.0     # new raw data per day

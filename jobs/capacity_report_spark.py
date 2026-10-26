@@ -1,20 +1,14 @@
 """
-08b  Capacity report from real web server logs (NASA Kennedy Space Center,
-July and August 1995, about 3.5 million requests). Runs on YARN.
-
-    docker compose exec spark /opt/spark/bin/spark-submit \
-        --master yarn --deploy-mode client \
-        --num-executors 3 --executor-cores 1 --executor-memory 640m \
-        --conf spark.yarn.am.memory=512m --conf spark.driver.host=spark \
-        --conf spark.sql.shuffle.partitions=12 --conf spark.sql.session.timeZone=UTC \
-        /exercises/08_web_logs_capacity.py
+Capacity report from real web server logs (NASA Kennedy Space Center, July and
+August 1995, about 3.5 million requests). Runs on YARN; submit it with
+jobs/capacity_report_spark.sh, which holds the executor sizing.
 
 Only DataFrame operations run on the cluster: they execute in Spark's JVM, so the
 NodeManagers need no Python. The small aggregated results are summarised on the
 driver.
 
 Layout it builds:
-    /lake/raw/nasa_http/month=...        the files as delivered (08_load_web_logs.sh)
+    /lake/raw/nasa_http/month=...        the files as delivered (ingest_web_logs.sh)
     /lake/curated/nasa_requests/date=... one row per request, Parquet
     /lake/marts/nasa_hourly              requests, errors and bytes per hour
 """
@@ -61,7 +55,10 @@ requests = (
 )
 ok_total = requests.count()
 
-(requests.write.mode("overwrite").partitionBy("date")
+# One file per day: without the repartition, each of the 12 partitions writes a
+# small file into every date folder (about 700 files of 160 KB), and every small
+# file costs NameNode memory and slows reads and recovery.
+(requests.repartition("date").write.mode("overwrite").partitionBy("date")
  .parquet(f"{LAKE}/curated/nasa_requests"))
 
 # --- Load per minute --------------------------------------------------------------

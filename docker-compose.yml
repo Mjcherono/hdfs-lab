@@ -12,8 +12,6 @@
 x-hadoop: &hadoop
   image: apache/hadoop:3.4.1
   env_file: ./config
-  volumes:
-    - ./exercises:/exercises:ro
 
 x-datanode: &datanode
   <<: *hadoop
@@ -61,7 +59,7 @@ services:
       HADOOP_CONF_DIR: /opt/hadoop-conf
       YARN_CONF_DIR: /opt/hadoop-conf
     volumes:
-      - ./exercises:/exercises:ro
+      - ./jobs:/opt/lab/jobs:ro
       - ./hadoop-conf:/opt/hadoop-conf:ro
     depends_on: [namenode]
 
@@ -72,7 +70,6 @@ services:
     hostname: edge
     command: ["sleep", "infinity"]
     volumes:
-      - ./exercises:/exercises:ro
       - ./data:/input:ro
     depends_on: [namenode, resourcemanager]
 
