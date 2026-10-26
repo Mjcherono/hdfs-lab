@@ -30,6 +30,7 @@ ops/                             running the cluster
 tools/
   hdfs_capacity_planner.py       nodes, disk and NameNode memory for a target
   search.py                      search: serve queries from the index in memory
+  sharded_search.py              search at scale: document shards, fan-out, tail latency
 monitoring/                      Prometheus scrape config, Grafana dashboard
 spark-conf/spark-defaults.conf   cluster-wide Spark settings (YARN, cluster mode)
 hadoop-conf/                     cluster client config for the Spark containers
@@ -137,6 +138,8 @@ bash jobs/collect_docs.sh                 # 450 documents from /usr/share/doc, o
 bash jobs/build_search_index_spark.sh     # Spark on YARN: inverted index, BM25 statistics
 python3 tools/search.py "memory leak"     # BM25-ranked results in about 1 ms
 python3 tools/search.py                   # interactive
+python3 tools/sharded_search.py shards    # split into document shards, fan out, merge
+python3 tools/sharded_search.py tail      # fan-out and tail latency, hedged requests (simulated)
 ```
 
 The index (65,766 terms, 307,407 postings) is written to `/lake/search` as
