@@ -12,6 +12,8 @@ Layout it builds:
     /lake/curated/nasa_requests/date=... one row per request, Parquet
     /lake/marts/nasa_hourly              requests, errors and bytes per hour
 """
+import contextlib
+import io
 from datetime import timedelta
 
 from pyspark.sql import SparkSession, functions as F
@@ -145,7 +147,11 @@ mbit = m["max_bytes"] * 8 / 60 / 1e6
 plan_rps = peak_rps / TARGET_UTILISATION
 p99_rps = m["p99"] / 60
 
-print(f"""
+# In cluster mode the driver runs on a NodeManager, so anything printed lands in a
+# YARN log. The report is captured and saved to HDFS as well as printed.
+report = io.StringIO()
+with contextlib.redirect_stdout(report):
+  print(f"""
 =====================================================================
  CAPACITY REPORT  NASA web server, {first:%d %b} to {last:%d %b %Y}
 =====================================================================
@@ -171,18 +177,18 @@ Status codes
 
 Gaps of 2 hours or more with no requests (an outage or missing logs:
  the logs alone cannot tell which)""")
-for a, b in outages:
-    print(f"  {a:%a %d %b %H:%M} to {b:%a %d %b %H:%M}  ({(b - a).total_seconds() / 3600:.0f} h)")
-if not outages:
-    print("  none")
-print(f"""
+  for a, b in outages:
+      print(f"  {a:%a %d %b %H:%M} to {b:%a %d %b %H:%M}  ({(b - a).total_seconds() / 3600:.0f} h)")
+  if not outages:
+      print("  none")
+  print(f"""
 Trend over {len(full_days)} full days
   {slope:+,.0f} requests a day per day  ({slope / ym:+.2%} of the average day)
 
 Busiest pages""")
-for r in top_paths:
-    print(f"  {r['n']:>9,}  {r['bytes'] / 1e9:>6.2f} GB  {r['path'][:60]}")
-print(f"""
+  for r in top_paths:
+      print(f"  {r['n']:>9,}  {r['bytes'] / 1e9:>6.2f} GB  {r['path'][:60]}")
+  print(f"""
 Sizing
   Size for the peak, not the typical minute: the busiest minute ({peak_rps:.1f} req/s)
   at {TARGET_UTILISATION:.0%} utilisation needs about {plan_rps:.1f} req/s of capacity.
@@ -192,5 +198,10 @@ Sizing
 Written to HDFS
   {LAKE}/curated/nasa_requests   (Parquet, partitioned by date)
   {LAKE}/marts/nasa_hourly       (Parquet, {len(hours):,} hours)
+  {LAKE}/reports/capacity_report (this report)
 =====================================================================""")
+text = report.getvalue()
+print(text)
+(spark.createDataFrame([(line,) for line in text.splitlines()], "value string")
+ .coalesce(1).write.mode("overwrite").text(f"{LAKE}/reports/capacity_report"))
 spark.stop()

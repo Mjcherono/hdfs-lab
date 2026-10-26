@@ -18,8 +18,16 @@ x-datanode: &datanode
   command: ["hdfs", "datanode"]
   depends_on: [namenode]
 
+# NodeManagers run the worker image: Hadoop plus Python for PySpark drivers and
+# executors. PYTHON_DIST points at an unpacked python-build-standalone release.
 x-nodemanager: &nodemanager
   <<: *hadoop
+  image: hdfs-lab/hadoop-worker:3.4.1
+  build:
+    context: ./images/hadoop-worker
+    additional_contexts:
+      python: ${PYTHON_DIST:-~/.local/share/uv/python/cpython-3.11.16-linux-x86_64-gnu}
+  pull_policy: build
   command: ["yarn", "nodemanager"]
   depends_on: [resourcemanager]
 
@@ -49,8 +57,9 @@ services:
   nodemanager1: { <<: *nodemanager, hostname: nodemanager1 }
   nodemanager2: { <<: *nodemanager, hostname: nodemanager2 }
 
-  # Spark client. hadoop-conf holds the cluster's client config, copied from the
-  # edge node, so spark-submit can find HDFS and run jobs on YARN.
+  # Spark client: where jobs are submitted from. hadoop-conf holds the cluster's
+  # client config (copied from the edge node); spark-conf the Spark defaults,
+  # which send every job to YARN in cluster mode.
   spark:
     image: apache/spark:3.5.3
     hostname: spark
@@ -58,9 +67,28 @@ services:
     environment:
       HADOOP_CONF_DIR: /opt/hadoop-conf
       YARN_CONF_DIR: /opt/hadoop-conf
+      SPARK_CONF_DIR: /opt/spark-conf
     volumes:
       - ./jobs:/opt/lab/jobs:ro
       - ./hadoop-conf:/opt/hadoop-conf:ro
+      - ./spark-conf:/opt/spark-conf:ro
+    depends_on: [namenode]
+
+  # Spark History Server: the Spark UI for finished applications, read from the
+  # event logs in HDFS. Restarts until ops/bootstrap_cluster.sh has created them.
+  spark-history:
+    image: apache/spark:3.5.3
+    hostname: spark-history
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.history.HistoryServer"]
+    environment:
+      HADOOP_CONF_DIR: /opt/hadoop-conf
+      SPARK_CONF_DIR: /opt/spark-conf
+    volumes:
+      - ./hadoop-conf:/opt/hadoop-conf:ro
+      - ./spark-conf:/opt/spark-conf:ro
+    ports:
+      - "127.0.0.1:18080:18080"
+    restart: on-failure
     depends_on: [namenode]
 
   # Edge node: client tools and cluster config, no HDFS or YARN daemons. Jobs

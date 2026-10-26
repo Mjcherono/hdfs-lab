@@ -20,6 +20,7 @@ jobs/                            the data pipeline
   capacity_report_spark.sh       Spark on YARN: submits the capacity report
   capacity_report_spark.py       the Spark job itself
 ops/                             running the cluster
+  bootstrap_cluster.sh           one-time setup: HDFS folders, Spark libraries
   hdfs_health.sh                 reported vs real capacity, block health
   datanode_failure_drill.sh      stop a DataNode, watch HDFS repair itself
   benchmark_throughput.sh        how many MB/s the cluster writes and sorts
@@ -27,18 +28,39 @@ ops/                             running the cluster
 tools/
   hdfs_capacity_planner.py       nodes, disk and NameNode memory for a target
 monitoring/                      Prometheus scrape config, Grafana dashboard
-hadoop-conf/                     cluster client config for the Spark container
+spark-conf/spark-defaults.conf   cluster-wide Spark settings (YARN, cluster mode)
+hadoop-conf/                     cluster client config for the Spark containers
+images/hadoop-worker/            NodeManager image: Hadoop plus Python
 data/                            input logs (not in git, see below)
 ```
 
 Every script runs on the host, from the lab folder, and sends the work to the
 edge node or the Spark client, as a scheduler would on a real cluster.
 
+## Production setup
+
+The lab runs Spark the way a production cluster does:
+
+| Practice | Where |
+|---|---|
+| Cluster deploy mode: the driver runs in a YARN container, not on the client | `spark-conf/spark-defaults.conf` |
+| Shared settings in one defaults file; each job's script holds only its sizing | `spark-conf/`, `jobs/*_spark.sh` |
+| Worker image with the same Python on every NodeManager, for PySpark drivers and executors | `images/hadoop-worker/` |
+| Spark's libraries stored in HDFS once (`spark.yarn.archive`), not uploaded per run | `ops/bootstrap_cluster.sh` |
+| Results and reports written to HDFS, since a cluster-mode driver has no terminal | `/lake/reports` |
+| Spark History Server for finished applications | http://localhost:18080 |
+| YARN log aggregation: `yarn logs -applicationId <id>` after a job ends | `config` |
+
+The worker image needs a portable Python: an unpacked
+[python-build-standalone](https://github.com/astral-sh/python-build-standalone)
+release, passed as `PYTHON_DIST` (default: the one `uv` installs under
+`~/.local/share/uv/python`). Build it with `docker compose build nodemanager1`.
+
 ## Start, stop, reset
 
 ```bash
 docker compose up -d            # start (first time pulls about 4 GB of images)
-docker compose ps               # all 12 containers should be Up
+docker compose ps               # all 13 containers should be Up
 docker compose down             # stop and WIPE all HDFS data (by design);
                                 # Prometheus history is kept in a volume
 ```
@@ -50,6 +72,7 @@ tab, or `ssh -L 13000:localhost:13000 -L 9870:localhost:9870 -L 18088:localhost:
 |---|---|
 | Grafana dashboard | http://localhost:13000, Hadoop lab > Hadoop lab capacity (admin / admin on first login) |
 | Prometheus | http://localhost:19090, Status > Targets |
+| Spark History Server | http://localhost:18080 |
 | NameNode (HDFS) | http://localhost:9870 |
 | ResourceManager (YARN jobs) | http://localhost:18088 |
 
@@ -88,7 +111,7 @@ bash jobs/compare_engines.sh    # about 5 minutes
 ```
 
 On this data MapReduce needs 4 YARN applications and about 150 s, Spark 1
-application and about 120 s, with identical answers. MapReduce writes every
+application and about 95 s, with identical answers. MapReduce writes every
 stage to disk and reads the logs once per question; Spark reads them once and
 keeps them in memory.
 

@@ -35,3 +35,9 @@ HADOOP_HEAPSIZE_MAX=512m
 
 # Prometheus metrics at /prom on every daemon's web port
 CORE-SITE.XML_hadoop.prometheus.endpoint.enabled=true
+
+# YARN log aggregation: when an application ends, every container's logs are
+# copied to HDFS, so "yarn logs -applicationId ..." works after the job is gone.
+YARN-SITE.XML_yarn.log-aggregation-enable=true
+YARN-SITE.XML_yarn.nodemanager.remote-app-log-dir=/app-logs
+YARN-SITE.XML_yarn.log-aggregation.retain-seconds=604800
