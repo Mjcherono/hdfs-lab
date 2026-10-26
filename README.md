@@ -17,6 +17,8 @@ jobs/                            the data pipeline
   busiest_hours_mapreduce.sh     MapReduce on YARN: busiest hours, status codes
   busiest_hours_spark.sh/.py     the same job in Spark, for comparison
   compare_engines.sh             runs both, times them, checks the answers match
+  collect_docs.sh                search: pack a document corpus into HDFS
+  build_search_index_spark.sh/.py  search: build the inverted index on YARN
   capacity_report_spark.sh       Spark on YARN: submits the capacity report
   capacity_report_spark.py       the Spark job itself
 ops/                             running the cluster
@@ -27,6 +29,7 @@ ops/                             running the cluster
   metrics_snapshot.sh            key numbers from Prometheus, in the terminal
 tools/
   hdfs_capacity_planner.py       nodes, disk and NameNode memory for a target
+  search.py                      search: serve queries from the index in memory
 monitoring/                      Prometheus scrape config, Grafana dashboard
 spark-conf/spark-defaults.conf   cluster-wide Spark settings (YARN, cluster mode)
 hadoop-conf/                     cluster client config for the Spark containers
@@ -123,6 +126,21 @@ bash ops/datanode_failure_drill.sh  # watch Grafana: Live DataNodes, Blocks need
 bash ops/benchmark_throughput.sh    # write and sort throughput, in MB/s
 python3 tools/hdfs_capacity_planner.py
 ```
+
+## Search engine
+
+The two halves of a search engine: an offline batch job builds the index, an
+online server answers queries from memory.
+
+```bash
+bash jobs/collect_docs.sh                 # 450 documents from /usr/share/doc, one JSON-lines file
+bash jobs/build_search_index_spark.sh     # Spark on YARN: inverted index, BM25 statistics
+python3 tools/search.py "memory leak"     # BM25-ranked results in about 1 ms
+python3 tools/search.py                   # interactive
+```
+
+The index (65,766 terms, 307,407 postings) is written to `/lake/search` as
+Parquet, and as a compact serving copy that `tools/search.py` loads into memory.
 
 ## What the data shows
 
